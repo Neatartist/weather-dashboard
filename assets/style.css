@@ -1,0 +1,26 @@
+:root {
+  --primary-color: darkblue;
+  --secondary-color: lightblue;
+  --tertiary-color: white;
+  --quaternary-color: black;
+  --quinary-color: grey;
+}
+
+body {
+  background-color: var(--tertiary-color);
+  color: var(--quaternary-color);
+  font-family: 'Roboto', sans-serif;
+  font-size: 1.2rem;
+  line-height: 1.5;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  background-color: var(--primary-color);
+  color: var(--tertiary-color);
+  padding: 1rem;
+  text-align: center;
+}
+
+
