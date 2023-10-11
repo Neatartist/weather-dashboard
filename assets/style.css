@@ -6,21 +6,29 @@
   --quinary-color: grey;
 }
 
-body {
-  background-color: var(--tertiary-color);
+h1 {
+  background-image: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+}
+
+h3 {
   color: var(--quaternary-color);
-  font-family: 'Roboto', sans-serif;
-  font-size: 1.2rem;
-  line-height: 1.5;
-  margin: 0;
-  padding: 0;
+  font-size: medium;
 }
 
-header {
-  background-color: var(--primary-color);
-  color: var(--tertiary-color);
-  padding: 1rem;
-  text-align: center;
+p {
+  color: var(--quinary-color);
+  font-size: small;
 }
 
+#memory{
+  margin: top 10%; 
+}
 
+#days{
+  margin: top 10%;
+  display: none; 
+}
+
+#five-day{
+  display: none;
+}
