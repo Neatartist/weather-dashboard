@@ -187,7 +187,7 @@ function getWeather(lat, long){
 }
 
 function saveLongLat(city, lat, long) {
-    const cities = [];
+    let cities = allCities.slice();
     const saveCity = [city, lat, long];
 
     const pastCities = JSON.parse(localStorage.getItem("cities"));
