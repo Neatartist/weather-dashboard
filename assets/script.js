@@ -1,67 +1,207 @@
 const ApiKey = "d176e1f9cd4b69d9ed7a09f6a87b1247";
-const searchInput = document.getElementById("search-input");
-const searchButton = document.getElementById("search-button");
-const cityName = document.getElementById("city-name");
-const weatherState = document.getElementById("weather-state");
-const weatherIcon = document.getElementById("weather-icon");
-const temperature = document.getElementById("temperature");
-const uvIndex = document.getElementById("uv-index");
+const cityName = document.querySelector("#getCityName");
+const submitCityEl = document.querySelector("#search");
+const todayDetail = document.querySelector("#today");
+const daysDetail = document.querySelector("#days");
+const memory = document.querySelector("#memory");
+const fiveDay = document.querySelector("#five-day")
+const allCities = JSON.parse(localStorage.getItem("cities")) || [];
 
 
-searchButton.addEventListener("click", (e) => {
-  e.preventDefault();
-  getWeatherByCity(searchInput.value);
-  searchInput.value = "";
+// show any previous cities
+if(allCities !== null){
+    for(let i = 0; i < allCities.length; i++) {
+        const city = document.createElement("button");
+        city.textContent = allCities[i][0];
+        city.setAttribute("class", "btn btn-secondary");
+        city.setAttribute("type", "button");
+
+        city.addEventListener("click", function (event){
+            todayDetail.children[0].textContent = allCities[i][0];
+            getWeather(allCities[i][1], allCities[i][2]);
+        })
+
+        memory.appendChild(city);
+    }
+}
+
+submitCityEl.addEventListener("click", function (event){
+    if(cityName.value.trim()){
+        // test city name
+        console.log("test:" + cityName.value.trim());
+
+        getLongLat(cityName.value.trim());
+    }
 });
 
-// Get weather by city name
-const getWeatherByCity = async (city) => {
-  // this is the api call to get the weather data
-try {
-    const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${ApiKey}&units=metric`);
-    const weatherData = await response.json();
-    console.log(weatherData);
-    // this is the function to show the weather data
-    showWeatherData(weatherData);
-  } catch (error) {
-    console.log(error);
-    alert("City not found");
-  }
-};
+function getLongLat(city){
+    todayDetail.children[0].textContent = city;
+    // add api key to make working url
+    const geoUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${city}&limit=5&appid=${ApiKey}`;
 
-// Show weather data
-const showWeatherData = (weatherData) => {
-  cityName.innerText = weatherData.name;
-  weatherState.innerText = weatherData.weather[0].main;
-  temperature.innerText = `${Math.round(weatherData.main.temp)}°C`;
-  weatherIcon.src = `https://openweathermap.org/img/wn/${weatherData.weather[0].icon}.png`;
+    // get lat and long
+    fetch(geoUrl).then(function (response) {
+        if (response.ok) {
+            response.json().then(function (cityDetails) {
+                // save lat and long in localstorage with city name
+                console.log(cityDetails);
+
+                getWeather(cityDetails[0].lat, cityDetails[0].lon);
+                saveLongLat(city, cityDetails[0].lat, cityDetails[0].lon);
+            })
+        }
+        else {
+            alert("Error: " + response.statusText);
+        }
+    })
 }
 
-// Get weather by location
-if ("geolocation" in navigator) {
-  navigator.geolocation.getCurrentPosition(setPosition, showError);
+function getWeather(lat, long){
+    console.log("Lat: " + lat + "\nLong: " + long);
+    const weatherUrl = "https://api.openweathermap.org/data/2.5/forecast?lat=" + lat + "&lon=" + long + "&appid=d176e1f9cd4b69d9ed7a09f6a87b1247&units=imperial"
+    fetch(weatherUrl).then(function (response) {
+        if (response.ok) {
+            response.json().then(function (weather) {
+                const sums = {
+                    today: [0, 0, 0],
+                    day1: [0, 0, 0],
+                    day2: [0, 0, 0],
+                    day3: [0, 0, 0],
+                    day4: [0, 0, 0],
+                    day5: [0, 0, 0]
+                };
+
+                const count = {
+                    today: 1,
+                    day1: 0,
+                    day2: 0,
+                    day3: 0,
+                    day4: 0,
+                    day5: 0
+                }
+
+
+                console.log(weather);
+                console.log("Unix today: " + weather.list[0].dt);
+
+                // grab today's date and set the next 5 days
+                const today = new Date((weather.list[0].dt) * 1000);
+                const day1 = new Date(today);
+                day1.setDate(today.getDate() + 1);
+                const day2 = new Date(today);
+                day2.setDate(today.getDate() + 2);
+                const day3 = new Date(today);
+                day3.setDate(today.getDate() + 3);
+                const day4 = new Date(today);
+                day4.setDate(today.getDate() + 4);
+                const day5 = new Date(today);
+                day5.setDate(today.getDate() + 5);
+
+
+                console.log("Today: " + today);
+
+                sums.today[0] = weather.list[0].main.temp;
+                sums.today[1] = weather.list[0].wind.speed;
+                sums.today[2] = weather.list[0].main.humidity;
+
+                console.log("Today temp: " + sums.today[0] + "\nToday wind: " + sums.today[1] + "\nToday humidity: " + sums.today[2]);
+
+                for(let i = 1; i < weather.list.length; i++) {
+                    const tempDate = new Date((weather.list[i].dt) * 1000);
+
+                    // todays date
+                    if (tempDate.getDate() === today.getDate()) {
+                        sums.today[0] = sums.today[0] + weather.list[i].main.temp;
+                        sums.today[1] = sums.today[1] + weather.list[i].wind.speed;
+                        sums.today[2] = sums.today[2] + weather.list[i].main.humidity;
+
+                        // counts how many values there are for today
+                        count.today++;
+                    }
+                    else if (tempDate.getDate() === day1.getDate()) {
+                        sums.day1[0] = sums.day1[0] + weather.list[i].main.temp;
+                        sums.day1[1] = sums.day1[1] + weather.list[i].wind.speed;
+                        sums.day1[2] = sums.day1[2] + weather.list[i].main.humidity;
+                        count.day1++;
+                    }
+                    else if (tempDate.getDate() === day2.getDate()) {
+                        sums.day2[0] = sums.day2[0] + weather.list[i].main.temp;
+                        sums.day2[1] = sums.day2[1] + weather.list[i].wind.speed;
+                        sums.day2[2] = sums.day2[2] + weather.list[i].main.humidity;
+                        count.day2++;
+                    }
+                    else if (tempDate.getDate() === day3.getDate()) {
+                        sums.day3[0] = sums.day3[0] + weather.list[i].main.temp;
+                        sums.day3[1] = sums.day3[1] + weather.list[i].wind.speed;
+                        sums.day3[2] = sums.day3[2] + weather.list[i].main.humidity;
+                        count.day3++;
+                    }
+                    else if (tempDate.getDate() === day4.getDate()) {
+                        sums.day4[0] = sums.day4[0] + weather.list[i].main.temp;
+                        sums.day4[1] = sums.day4[1] + weather.list[i].wind.speed;
+                        sums.day4[2] = sums.day4[2] + weather.list[i].main.humidity;
+                        count.day4++;
+                    }
+                    else if (tempDate.getDate() === day5.getDate()) {
+                        sums.day5[0] = sums.day5[0] + weather.list[i].main.temp;
+                        sums.day5[1] = sums.day5[1] + weather.list[i].wind.speed;
+                        sums.day5[2] = sums.day5[2] + weather.list[i].main.humidity;
+                        count.day5++;
+                    }
+                    else{
+                        console.log("Somethings wrong!!!");
+                    }
+                }
+
+                console.log("Weather sums:\nTemp: " + sums.today[0] + sums.day1[0] + sums.day2[0] + sums.day3[0]+sums.day4[0]+sums.day5[0]
+                + "\nWinds: " +sums.today[1]+sums.day1[1]+sums.day2[1]+sums.day3[1]+sums.day4[1]+sums.day5[1]
+                + "\nHumidity: " +sums.today[2]+sums.day1[2]+sums.day2[2]+sums.day3[2]+sums.day4[2]+sums.day5[2]);
+
+                console.log("Todays Avgs: " + (sums.today[0]/count.today) + (sums.today[1]/count.today) + (sums.today[2]/count.today));
+
+                displayWeather(sums, count, [today,day1,day2,day3,day4,day5]);
+            })
+        }
+    })
+    
+    function displayWeather(sums, count, daysList) {
+        // add weather details to today section of page
+        todayDetail.children[1].textContent = daysList[0].toDateString();
+        // Find average of each weather topic and round to 2 decimals
+        todayDetail.children[2].children[0].textContent = "Temperature: " + (Math.round((sums.today[0]/count.today)*100)/100) + "°F";
+        todayDetail.children[2].children[1].textContent = "Wind Speed: " + (Math.round((sums.today[1]/count.today)*100)/100) + "mph";
+        todayDetail.children[2].children[2].textContent = "Humidity: " + (Math.round((sums.today[2]/count.today)*100)/100) + "%";
+
+        // show boxes
+        fiveDay.style.display = "block";
+        daysDetail.style.display = "flex";
+
+        // loop through the next 5 days and display values similar to method above
+        for(let i = 0; i < daysDetail.children.length; i++) {
+            daysDetail.children[i].children[0].children[0].textContent = daysList[i+1].toDateString();
+            daysDetail.children[i].children[0].children[1].children[0].textContent = "Temperature: " + (Math.round((sums["day" + (i+1)][0]/count["day" + (i+1)])*100)/100) + "°F";
+            daysDetail.children[i].children[0].children[1].children[1].textContent = "Wind Speed: " + (Math.round((sums["day" + (i+1)][1]/count["day" + (i+1)])*100)/100) + "mph";
+            daysDetail.children[i].children[0].children[1].children[2].textContent = "Humidity: " + (Math.round((sums["day" + (i+1)][2]/count["day" + (i+1)])*100)/100) + "%";
+        }
+    }
 }
 
-// Set user's position
-function setPosition(position) {
-  let latitude = position.coords.latitude;
-  let longitude = position.coords.longitude;
-  getWeatherByLocation(latitude, longitude);
-}
+function saveLongLat(city, lat, long) {
+    const cities = [];
+    const saveCity = [city, lat, long];
 
-// Show error when there is an issue with geolocation service
-function showError(error) {
-  console.log(error.message);
-}
+    const pastCities = JSON.parse(localStorage.getItem("cities"));
 
-// Get weather by location using latitude & longitude
-const getWeatherByLocation = async (latitude, longitude) => {
-  // this is the api call to get the weather data
-  const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${ApiKey}&units=metric`);
-  const weatherData = await response.json();
-  console.log
-  // this is the function to show the weather data
-  showWeatherData(weatherData);
-};
+    // save previous cities, so they don't get overridden
+    if(JSON.parse(localStorage.getItem("cities")) !== null){
+        cities = cities.concat(pastCities);
+    }
+
+    // add on new city info
+    cities.push(saveCity);
+
+    // add to local storage
+    localStorage.setItem("cities", JSON.stringify(cities));
+}
 
 
